@@ -10,7 +10,10 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class SellerDaoJDBC implements SellerDao {
 
@@ -63,6 +66,44 @@ public class SellerDaoJDBC implements SellerDao {
         }
     }
 
+    @Override
+    public List<Seller> findByDepartment(Department department) {
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+        try {
+            statement = connect.prepareStatement(
+                    "SELECT seller.*,department.Name as DepName "
+                    + "FROM seller INNER JOIN department "
+                    + "ON seller.DepartmentId = department.Id "
+                    + "WHERE DepartmentId = ? "
+                    + "ORDER BY Name "
+            );
+
+            statement.setInt(1, department.getId());
+            resultSet = statement.executeQuery();
+
+            List<Seller> sellerList = new ArrayList<>();
+            Map<Integer, Department> depMap = new HashMap<>();
+
+            while (resultSet.next()) {
+                Department dep = depMap.get(resultSet.getInt("DepartmentId"));
+                if (dep == null) {
+                    dep = instantiateDepartment(resultSet);
+                    depMap.put(resultSet.getInt("DepartmentId"), dep);
+                }
+                Seller seller = instantiateSeller(resultSet, dep);
+                sellerList.add(seller);
+            }
+            return sellerList;
+        } catch (SQLException e) {
+            throw new DbException(e.getMessage());
+        }
+        finally {
+            DB.closeStatement(statement);
+            DB.closeResultSet(resultSet);
+        }
+    }
+
     private Seller instantiateSeller(ResultSet resultSet, Department dep) throws SQLException {
         Seller seller = new Seller();
         seller.setId(resultSet.getInt("Id"));
@@ -85,4 +126,6 @@ public class SellerDaoJDBC implements SellerDao {
     public List<Seller> findAll() {
         return List.of();
     }
+
+
 }
