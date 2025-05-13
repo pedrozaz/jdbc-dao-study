@@ -1,15 +1,13 @@
 package model.dao.impl;
 
+import com.mysql.cj.protocol.Resultset;
 import db.DB;
 import db.DbException;
 import model.dao.SellerDao;
 import model.entities.Department;
 import model.entities.Seller;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -25,7 +23,41 @@ public class SellerDaoJDBC implements SellerDao {
 
     @Override
     public void insert(Seller o) {
+        PreparedStatement statement = null;
+        try {
+            statement = connect.prepareStatement(
+                    "INSERT INTO seller "
+                    + "(Name, Email, BirthDate, BaseSalary, DepartmentId) "
+                    + "VALUES "
+                    +" (?, ?, ?, ?, ?) ",
+                    Statement.RETURN_GENERATED_KEYS
+            );
 
+            statement.setString(1, o.getName());
+            statement.setString(2, o.getEmail());
+            statement.setDate(3, new java.sql.Date(o.getBirthDate().getTime()));
+            statement.setDouble(4, o.getBaseSalary());
+            statement.setInt(5, o.getDepartment().getId());
+
+            int rowsAffect = statement.executeUpdate();
+
+            if (rowsAffect > 0) {
+                ResultSet rs = statement.getGeneratedKeys();
+                if (rs.next()) {
+                    int id = rs.getInt(1);
+                    o.setId(id);
+                }
+                DB.closeResultSet(rs);
+            } else {
+                throw new DbException("Unexpected error! No rows affected.");
+            }
+        }
+        catch (SQLException e) {
+            throw new DbException(e.getMessage());
+        }
+        finally {
+            DB.closeStatement(statement);
+        }
     }
 
     @Override
@@ -57,7 +89,8 @@ public class SellerDaoJDBC implements SellerDao {
                 return instantiateSeller(resultSet, dep);
             }
             return null;
-        } catch (SQLException e) {
+        }
+        catch (SQLException e) {
             throw new DbException(e.getMessage());
         }
         finally {
@@ -95,7 +128,8 @@ public class SellerDaoJDBC implements SellerDao {
                 sellerList.add(seller);
             }
             return sellerList;
-        } catch (SQLException e) {
+        }
+        catch (SQLException e) {
             throw new DbException(e.getMessage());
         }
         finally {
@@ -149,7 +183,8 @@ public class SellerDaoJDBC implements SellerDao {
                 sellerList.add(seller);
             }
             return sellerList;
-        } catch (SQLException e) {
+        }
+        catch (SQLException e) {
             throw new DbException(e.getMessage());
         }
         finally {
