@@ -1,6 +1,5 @@
 package model.dao.impl;
 
-import com.mysql.cj.protocol.Resultset;
 import db.DB;
 import db.DbException;
 import model.dao.SellerDao;
@@ -62,7 +61,30 @@ public class SellerDaoJDBC implements SellerDao {
 
     @Override
     public void update(Seller o) {
+        PreparedStatement statement = null;
+        try {
+            statement = connect.prepareStatement(
+                    "UPDATE seller "
+                            + "SET Name = ?, Email = ?, BirthDate = ?, BaseSalary = ?, DepartmentId = ? "
+                            + "WHERE Id = ?"
+            );
 
+            statement.setString(1, o.getName());
+            statement.setString(2, o.getEmail());
+            statement.setDate(3, new java.sql.Date(o.getBirthDate().getTime()));
+            statement.setDouble(4, o.getBaseSalary());
+            statement.setInt(5, o.getDepartment().getId());
+            statement.setInt(6, o.getId());
+
+            statement.executeUpdate();
+
+        }
+        catch (SQLException e) {
+            throw new DbException(e.getMessage());
+        }
+        finally {
+            DB.closeStatement(statement);
+        }
     }
 
     @Override
